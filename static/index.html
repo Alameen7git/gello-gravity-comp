@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GELLO UR5 Next-Gen Dashboard</title>
+    <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.161.0/three.min.js"></script>
+    <style>
+        :root {
+            --primary: #00f2fe;
+            --secondary: #4facfe;
+            --bg: #0a0e14;
+            --glass: rgba(255, 255, 255, 0.05);
+            --border: rgba(255, 255, 255, 0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+        
+        body { 
+            background: var(--bg); 
+            color: white; 
+            overflow: hidden; 
+            background: radial-gradient(circle at top left, #1a2a44, #0a0e14);
+            height: 100vh;
+        }
+
+        #dashboard {
+            display: grid;
+            grid-template-columns: 350px 1fr 300px;
+            height: 100vh;
+            padding: 20px;
+            gap: 20px;
+            position: relative;
+            z-index: 10;
+        }
+
+        /* Glass Pane Style */
+        .pane {
+            background: var(--glass);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            grid-column: 1 / -1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 60px;
+            padding: 0 10px;
+        }
+
+        .logo {
+            font-size: 20px;
+            font-weight: 800;
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+        }
+
+        .status-badge {
+            padding: 6px 12px;
+            background: rgba(76, 175, 80, 0.1);
+            border: 1px solid rgba(76, 175, 80, 0.3);
+            color: #81c784;
+            border-radius: 100px;
+            font-size: 12px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-badge::before {
+            content: '';
+            display: block;
+            width: 6px;
+            height: 6px;
+            background: #81c784;
+            border-radius: 50%;
+            box-shadow: 0 0 10px #81c784;
+        }
+
+        /* 3D Viewer Container */
+        #viewport-container {
+            position: relative;
+            grid-column: 2;
+            flex: 1;
+            border-radius: 32px;
+            overflow: hidden;
+            background: radial-gradient(circle at center, #16213e, #0a0e14);
+            border: 1px solid var(--border);
+        }
+
+        #viewport { width: 100%; height: 100%; }
+
+        /* Left Setup Pane */
+        .setup-pane h2 { font-size: 18px; margin-bottom: 24px; color: #fff; }
+        
+        .step {
+            margin-bottom: 24px;
+            opacity: 0.5;
+            transition: 0.3s;
+        }
+        .step.active { opacity: 1; }
+
+        .step-num {
+            display: inline-flex;
+            width: 24px;
+            height: 24px;
+            background: var(--secondary);
+            border-radius: 50%;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+
+        .control-group { margin-top: 12px; }
+        label { display: block; font-size: 12px; color: #aaa; margin-bottom: 6px; }
+        select, input {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border);
+            padding: 10px 14px;
+            border-radius: 12px;
+            color: white;
+            outline: none;
+            transition: 0.2s;
+        }
+        select:focus, input:focus { border-color: var(--primary); }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            border-radius: 12px;
+            border: none;
+            background: linear-gradient(135deg, var(--secondary), var(--primary));
+            color: white;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.3s;
+            margin-top: 10px;
+        }
+        button:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(0, 242, 254, 0.3); }
+        button:active { transform: translateY(0); }
+        button.secondary { background: rgba(255, 255, 255, 0.1); }
+
+        /* Right Telemetry Pane */
+        .joint-list { flex: 1; overflow-y: auto; margin-top: 20px; }
+        .joint-card {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+        .joint-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .joint-name { font-size: 12px; font-weight: 600; color: #888; }
+        .joint-value { font-family: 'Consolas', monospace; font-size: 14px; color: var(--primary); }
+        .bar-container { height: 4px; background: rgba(255,255,255,0.05); border-radius: 2px; }
+        .bar-fill { height: 100%; background: var(--secondary); transition: 0.1s; border-radius: 2px; }
+
+        /* Bottom Controls Overlay */
+        .bottom-float {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 20px;
+            background: rgba(10, 14, 20, 0.6);
+            backdrop-filter: blur(20px);
+            padding: 10px 24px;
+            border-radius: 100px;
+            border: 1px solid var(--border);
+            align-items: center;
+        }
+        .slider-wrap { width: 200px; }
+        input[type="range"] { 
+            -webkit-appearance: none; 
+            background: rgba(255,255,255,0.1); 
+            height: 4px; 
+            border: none;
+            cursor: pointer;
+        }
+        input[type="range"]::-webkit-slider-thumb { 
+            -webkit-appearance: none; 
+            width: 16px; height: 16px; 
+            background: var(--primary); 
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--primary);
+        }
+
+        .overlay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="dashboard">
+        <header>
+            <div class="logo">GELLO DASHBOARD // NEXT-GEN</div>
+            <div class="status-badge" id="conn-status">HARDWARE DISCONNECTED</div>
+        </header>
+
+        <!-- SETUP PANEL -->
+        <div class="pane setup-pane">
+            <h2>System Setup</h2>
+            
+            <div class="step active" id="step1">
+                <span class="step-num">1</span>
+                <strong>Port & Connection</strong>
+                <div class="control-group">
+                    <label>Serial Port</label>
+                    <select id="port-select">
+                        <option>Detecting...</option>
+                    </select>
+                </div>
+                <button id="connect-btn">Connect Hardware</button>
+            </div>
+
+            <div class="step" id="step2">
+                <span class="step-num">2</span>
+                <strong>Calibration</strong>
+                <p style="font-size: 12px; color: #888; margin-top: 10px;">
+                    Move arm to <b>UR5 HOME POSE</b> (J2 Pointing Up).
+                </p>
+                <button class="secondary" id="calibrate-btn">Sync Calibration</button>
+            </div>
+
+            <div class="step" id="step3">
+                <span class="step-num">3</span>
+                <strong>Live Operation</strong>
+                <button id="start-btn">Start Grav-Comp</button>
+                <div class="control-group">
+                    <label>Dry-Run Mode</label>
+                    <input type="checkbox" id="dry-run-check" style="width: auto; margin-right: 8px;">
+                    <span style="font-size: 12px; color: #888;">No live torque</span>
+                </div>
+            </div>
+            
+            <div style="flex: 1;"></div>
+            <div style="font-size: 11px; color: #555; text-align: center;">V3.0.0-GRAPHIC-BETA</div>
+        </div>
+
+        <!-- 3D VIEWPORT -->
+        <div id="viewport-container">
+            <div id="viewport"></div>
+            
+            <!-- Floating Calibration Guide -->
+            <div id="calibration-guide" style="position: absolute; top: 20px; right: 20px; color: #aaa; font-size: 12px; background: rgba(0,0,0,0.4); padding: 10px; border-radius: 10px; border: 1px solid var(--border); display: none;">
+                <b>Pose Check:</b><br/>
+                J2: Vertical ↑<br/>
+                J3: Horizontal →<br/>
+                J4: Vertical ↓
+            </div>
+
+            <div class="bottom-float">
+                <div class="slider-wrap">
+                    <label>Grav-Comp Gain: <span id="gain-val">0.60</span></label>
+                    <input type="range" id="gain-slider" min="0" max="1" step="0.01" value="0.6">
+                </div>
+                <div class="divider" style="width: 1px; height: 30px; background: rgba(255,255,255,0.1);"></div>
+                <div style="font-size: 12px; font-weight: 600;">System Gain</div>
+            </div>
+        </div>
+
+        <!-- TELEMETRY PANEL -->
+        <div class="pane telemetry-pane">
+            <h2>Live Telemetry</h2>
+            <div class="joint-list" id="joint-list">
+                <!-- Joint cards will be injected here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Initialization Modal -->
+    <div id="modal" class="overlay" style="display: none;">
+        <h1 id="modal-title">Initializing...</h1>
+        <p id="modal-text" style="color: #888; margin-top: 10px;">Please wait while we search for motors.</p>
+        <div style="width: 100px; height: 2px; background: var(--primary); margin: 20px auto; animation: pulse 1.5s infinite;"></div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
