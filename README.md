@@ -131,13 +131,13 @@ PC ──USB──▶ U2D2 ──TTL──▶ Motor 1 ──▶ Motor 2 ──�
 
 ### File Structure
 
-```
-gello-gravity-comp/
-├── gravity_compensation.py   # Main script (standalone, ~480 lines)
-├── gello_ur5.urdf            # Robot model (masses, lengths, inertias)
-├── README.md                 # This documentation
-└── validate.py               # Quick validation script
-```
+| File | Description |
+| :--- | :--- |
+| [gravity_compensation.py](file:///C:/Users/alame/.gemini/antigravity/scratch/gello-gravity-comp/gravity_compensation.py) | Main script — self-contained with all classes |
+| [gello_gui.py](file:///C:/Users/alame/.gemini/antigravity/scratch/gello-gravity-comp/gello_gui.py) | **New!** Premium GUI dashboard for easy setup |
+| [gello_ur5.urdf](file:///C:/Users/alame/.gemini/antigravity/scratch/gello-gravity-comp/gello_ur5.urdf) | Robot model with updated masses for XM430 motors |
+| [README.md](file:///C:/Users/alame/.gemini/antigravity/scratch/gello-gravity-comp/README.md) | Full documentation with tuning guide |
+| [validate.py](file:///C:/Users/alame/.gemini/antigravity/scratch/gello-gravity-comp/validate.py) | Quick validation script |
 
 ### Class Diagram
 
@@ -266,7 +266,18 @@ Standard GELLO UR5 Home Position:
 
 > ⚠️ **Important**: The arm must be in this exact position when you start the script, or calibration will fail.
 
-### Step 8: Test with Dry Run (No Torque)
+### Step 8: Launch the GUI (Recommended)
+
+For a user-friendly experience, use the new GUI setup:
+
+```bash
+python gello_gui.py
+```
+This wizard will guide you through port selection, motor verification, and calibration with visual feedback and a live dashboard.
+
+### Step 9: Test with Dry Run (CLI Alternative)
+
+If you prefer the command line:
 
 ```bash
 # Linux
@@ -300,7 +311,7 @@ DRY RUN mode — torque will NOT be enabled
 [DRY RUN] Gravity τ (Nm):  [ 0.0000,  0.0234,  0.0156, ...]
 ```
 
-### Step 9: Start with Low Gain
+### Step 10: Start Setup
 
 Once dry-run looks good, start with **low gain** (0.2-0.3):
 
@@ -311,7 +322,7 @@ python gravity_compensation.py --port /dev/ttyUSB0 --gain 0.2
 - Gently move the arm — it should resist gravity slightly
 - If any joint moves the **wrong direction** (amplifies instead of resists), stop immediately and flip that joint's sign (see [Tuning Guide](#tuning-guide))
 
-### Step 10: Increase Gain to Normal Operation
+### Step 11: Normal Operation
 
 ```bash
 python gravity_compensation.py --port /dev/ttyUSB0 --gain 0.6
