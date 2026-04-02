@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  URDF for Custom GELLO UR5 Leader Arm (Gravity Compensation)
+  
+  Based on the standard GELLO UR5 kinematic structure (~0.25x scale of UR5).
+  Dimensions match original GELLO UR5 design.
+  
+  Motor modifications vs stock:
+    - Joint 2 (shoulder_lift): XM430-W350-T (82g) replaces XL330-M288-T (18g)
+    - Joint 3 (elbow):         XM430-W350-T (82g) replaces XL330-M288-T (18g)
+    - All other joints:        XL330-M288-T (18g) — unchanged
+  
+  Link masses include 3D-printed plastic (~30-50g per link) + servo weight.
+  Inertias are approximated as thin cylinders/boxes.
+  
+  IMPORTANT: These mass/inertia values are approximate. For best gravity
+  compensation performance, you may need to tune them by adjusting the
+  gravity_comp_gain parameter in the Python script.
+-->
+<robot name="gello_ur5_custom">
+
+  <!-- ==================== BASE ==================== -->
+  <link name="base_link">
+    <inertial>
+      <origin xyz="0 0 0.01" rpy="0 0 0"/>
+      <mass value="0.15"/>
+      <inertia ixx="0.00005" ixy="0" ixz="0" iyy="0.00005" iyz="0" izz="0.00008"/>
+    </inertial>
+  </link>
+
+  <!-- ==================== JOINT 1: SHOULDER PAN ==================== -->
+  <!-- Motor: XL330-M288-T (18g) -->
+  <link name="link1">
+    <inertial>
+      <origin xyz="0 0 0.02" rpy="0 0 0"/>
+      <mass value="0.055"/>
+      <inertia ixx="0.000008" ixy="0" ixz="0" iyy="0.000008" iyz="0" izz="0.000004"/>
+    </inertial>
+  </link>
+
+  <joint name="joint1" type="revolute">
+    <parent link="base_link"/>
+    <child link="link1"/>
+    <origin xyz="0 0 0.0235" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-3.14159" upper="3.14159" effort="0.5" velocity="6.28"/>
+  </joint>
+
+  <!-- ==================== JOINT 2: SHOULDER LIFT ==================== -->
+  <!-- Motor: XM430-W350-T (82g) — UPGRADED -->
+  <link name="link2">
+    <inertial>
+      <!-- CoM shifted along link length -->
+      <origin xyz="0 0 0.055" rpy="0 0 0"/>
+      <mass value="0.155"/>
+      <inertia ixx="0.00012" ixy="0" ixz="0" iyy="0.00012" iyz="0" izz="0.000012"/>
+    </inertial>
+  </link>
+
+  <joint name="joint2" type="revolute">
+    <parent link="link1"/>
+    <child link="link2"/>
+    <origin xyz="0 0 0.035" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-3.14159" upper="3.14159" effort="4.1" velocity="6.28"/>
+  </joint>
+
+  <!-- ==================== JOINT 3: ELBOW ==================== -->
+  <!-- Motor: XM430-W350-T (82g) — UPGRADED -->
+  <link name="link3">
+    <inertial>
+      <origin xyz="0 0 0.05" rpy="0 0 0"/>
+      <mass value="0.145"/>
+      <inertia ixx="0.00010" ixy="0" ixz="0" iyy="0.00010" iyz="0" izz="0.000010"/>
+    </inertial>
+  </link>
+
+  <joint name="joint3" type="revolute">
+    <parent link="link2"/>
+    <child link="link3"/>
+    <origin xyz="0 0 0.1085" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-3.14159" upper="3.14159" effort="4.1" velocity="6.28"/>
+  </joint>
+
+  <!-- ==================== JOINT 4: WRIST 1 ==================== -->
+  <!-- Motor: XL330-M288-T (18g) -->
+  <link name="link4">
+    <inertial>
+      <origin xyz="0 0 0.015" rpy="0 0 0"/>
+      <mass value="0.048"/>
+      <inertia ixx="0.000004" ixy="0" ixz="0" iyy="0.000004" iyz="0" izz="0.000002"/>
+    </inertial>
+  </link>
+
+  <joint name="joint4" type="revolute">
+    <parent link="link3"/>
+    <child link="link4"/>
+    <origin xyz="0 0 0.0945" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-3.14159" upper="3.14159" effort="0.5" velocity="6.28"/>
+  </joint>
+
+  <!-- ==================== JOINT 5: WRIST 2 ==================== -->
+  <!-- Motor: XL330-M288-T (18g) -->
+  <link name="link5">
+    <inertial>
+      <origin xyz="0 0 0.012" rpy="0 0 0"/>
+      <mass value="0.042"/>
+      <inertia ixx="0.000003" ixy="0" ixz="0" iyy="0.000003" iyz="0" izz="0.000002"/>
+    </inertial>
+  </link>
+
+  <joint name="joint5" type="revolute">
+    <parent link="link4"/>
+    <child link="link5"/>
+    <origin xyz="0 0 0.0255" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-3.14159" upper="3.14159" effort="0.5" velocity="6.28"/>
+  </joint>
+
+  <!-- ==================== JOINT 6: WRIST 3 ==================== -->
+  <!-- Motor: XL330-M288-T (18g) -->
+  <link name="link6">
+    <inertial>
+      <origin xyz="0 0 0.01" rpy="0 0 0"/>
+      <mass value="0.038"/>
+      <inertia ixx="0.000002" ixy="0" ixz="0" iyy="0.000002" iyz="0" izz="0.000001"/>
+    </inertial>
+  </link>
+
+  <joint name="joint6" type="revolute">
+    <parent link="link5"/>
+    <child link="link6"/>
+    <origin xyz="0 0 0.0255" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-3.14159" upper="3.14159" effort="0.5" velocity="6.28"/>
+  </joint>
+
+</robot>
